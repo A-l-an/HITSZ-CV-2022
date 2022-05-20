@@ -33,7 +33,7 @@ if __name__ == '__main__':
     X_train, X_test, Y_train, Y_test = train_test_split(imgs, labels, test_size=0.25)
 
     PCA_x, PCA_y, KPCA_x, KPCA_y, LDA_x, LDA_y = [], [], [], [], [], []
-    for i in range(1, 99):
+    for i in range(1, 60):
         model = MyPCA(n_components=i)
         model.train(X_train, Y_train, 0.99)
         model.predict(X_test, Y_test)
@@ -61,5 +61,6 @@ if __name__ == '__main__':
     plt.plot(PCA_x, PCA_y, "r--", label="PCA")
     plt.plot(KPCA_x, KPCA_y, "b-.", label="KPCA")
     plt.plot(LDA_x, LDA_y, "g-", label="LDA")
+    plt.legend(loc='lower right')
 
     plt.show()

@@ -23,9 +23,9 @@ def read_img(path, width, height):
 
 
 class MyLDA:
-    def __init__(self):
+    def __init__(self, n_components=1):
         self.model = None
-        self.n_components = None
+        self.n_components = n_components
         self.trained_imgs = None
         self.train_labels = None
 
@@ -41,12 +41,12 @@ class MyLDA:
         eig_sum = np.sum(eig_val)
         eig_cum = np.cumsum(eig_val)
         rate = eig_cum / eig_sum                    # 贡献率
-        n_components = np.argmax(rate > precision) + 1
-        n_components = min(41 - 1, n_components)    # LDA: min(n_features, n_classes - 1)
+        # n_components = np.argmax(rate > precision) + 1
+        n_components = min(41 - 1, self.n_components)    # LDA: min(n_features, n_classes - 1)
 
         self.model = LDA(n_components=n_components)
         self.trained_imgs = self.model.fit_transform(imgs, labels)  # 标准化正则化
-        self.n_components = n_components
+        # self.n_components = n_components
 
         trained_imgs = []
         trained_labels = []
@@ -80,7 +80,7 @@ class MyLDA:
             if test_labels[i] == pre_labels[i]:
                 cnt = cnt + 1
         acc = cnt / labels_len
-        print("LDA accuracy:", acc)
+        # print("LDA accuracy:", acc)
         return acc
 
 
