@@ -2,7 +2,7 @@ import glob
 import os
 import cv2
 import numpy as np
-from sklearn.decomposition import PCA
+from sklearn.decomposition import KernelPCA
 from sklearn.model_selection import train_test_split
 
 
@@ -22,14 +22,12 @@ def read_img(path, width, height):
     return np.asarray(imgs, np.float32), np.asarray(labels, np.int32)
 
 
-class MyPCA:
-    def __init__(self, n_components=1):
+class MyKPCA:
+    def __init__(self):
         self.model = None
-        self.n_components = n_components
+        self.n_components = None
         self.trained_imgs = None
         self.train_labels = None
-        self.pre_labels = None
-
 
     def train(self, imgs, labels, precision):
         avg = np.mean(imgs, axis=0)  # 平均脸
@@ -43,11 +41,11 @@ class MyPCA:
         eig_sum = np.sum(eig_val)
         eig_cum = np.cumsum(eig_val)
         rate = eig_cum / eig_sum            # 贡献率
-        # n_components = np.argmax(rate > precision) + 1
+        n_components = np.argmax(rate > precision) + 1
 
-        self.model = PCA(n_components=self.n_components)
+        self.model = KernelPCA(n_components=n_components)
         self.trained_imgs = self.model.fit_transform(imgs)  # 标准化正则化
-        # self.n_components = n_components
+        self.n_components = n_components
 
         trained_imgs = []
         trained_labels = []
@@ -81,8 +79,7 @@ class MyPCA:
             if test_labels[i] == pre_labels[i]:
                 cnt = cnt + 1
         acc = cnt / labels_len
-        self.pre_labels = np.array(pre_labels)
-        # print("PCA accuracy:", acc)
+        print("KPCA accuracy:", acc)
         return acc
 
 
@@ -94,7 +91,7 @@ if __name__ == '__main__':
     imgs, labels = read_img(path, width, height)
     X_train, X_test, Y_train, Y_test = train_test_split(imgs, labels, test_size=0.25)
 
-    model = MyPCA()
+    model = MyKPCA()
     model.train(X_train, Y_train, 0.99)
     model.predict(X_test, Y_test)
     print("n_components: " + str(model.n_components))
