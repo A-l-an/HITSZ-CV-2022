@@ -82,7 +82,7 @@ class MyPCA:
                 cnt = cnt + 1
         acc = cnt / labels_len
         self.pre_labels = np.array(pre_labels)
-        # print("PCA accuracy:", acc)
+        print("PCA accuracy:", acc)
         return acc
 
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     imgs, labels = read_img(path, width, height)
     X_train, X_test, Y_train, Y_test = train_test_split(imgs, labels, test_size=0.25)
 
-    model = MyPCA()
+    model = MyPCA(n_components=60)
     model.train(X_train, Y_train, 0.99)
     model.predict(X_test, Y_test)
     print("n_components: " + str(model.n_components))

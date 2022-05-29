@@ -1,0 +1,2 @@
+PCA = KPCA = 0.94
+LDA = 1

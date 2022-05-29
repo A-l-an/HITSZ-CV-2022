@@ -79,7 +79,7 @@ class MyKPCA:
             if test_labels[i] == pre_labels[i]:
                 cnt = cnt + 1
         acc = cnt / labels_len
-        # print("KPCA accuracy:", acc)
+        print("KPCA accuracy:", acc)
         return acc
 
 

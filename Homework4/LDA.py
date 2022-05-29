@@ -80,7 +80,7 @@ class MyLDA:
             if test_labels[i] == pre_labels[i]:
                 cnt = cnt + 1
         acc = cnt / labels_len
-        # print("LDA accuracy:", acc)
+        print("LDA accuracy:", acc)
         return acc
 
 
