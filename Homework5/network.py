@@ -1,3 +1,4 @@
+from turtle import forward
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -26,6 +27,21 @@ class Net(nn.Module):
         """
         super().__init__()
         ### YOUR CODE HERE
+        layers = []
+        in_channels  = 3
+        out_channels_list = [6, 16]
+        # Convolution & Pooling layers
+        for out_channels in out_channels_list:
+            layers += [nn.Conv2d(in_channels, out_channels, kernel_size=5,stride=1, padding=0)]
+            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            in_channels = out_channels
+        self.conv = nn.Sequential(*layers)
+        # Fully-connected layer
+        self.fc = nn.Sequential(
+                        nn.Linear(400, 120),
+                        nn.Linear(120, 84) ,
+                        nn.Linear(84, 10)
+        )
         ### END YOUR CODE
 
     def forward(self, x):
@@ -37,5 +53,9 @@ class Net(nn.Module):
             you can flatten the tensor to shape `(BatchSize, 400)` here, you may find `torch.flatten` helpful.
         """
         ### YOUR CODE HERE
+        # x = torch.flatten(x, 1)
+        x = self.conv(x)
+        x = x.view(x.size(0), -1)   # size(0) is BatchSize
+        x = self.fc(x)
         ### END YOUR CODE
         return x
