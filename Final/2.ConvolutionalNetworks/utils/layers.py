@@ -25,7 +25,9 @@ def affine_forward(x: np.ndarray, w: np.ndarray, b: np.ndarray):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    x_data = x.reshape((N, -1))
+    out = x_data.dot(w) + b
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -55,7 +57,11 @@ def affine_backward(dout: np.ndarray, cache: List[np.ndarray]):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    db = np.sum(dout, axis=0)
+    dx = dout.dot(w.T)
+    dx = dx.reshape(x.shape)
+    dw = x.reshape((N, -1)).T.dot(dout)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -78,7 +84,7 @@ def relu_forward(x: np.ndarray):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    out = x * (x > 0)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -102,7 +108,7 @@ def relu_backward(dout: np.ndarray, cache: np.ndarray):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    dx = dout * (x > 0)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -129,7 +135,16 @@ def softmax_loss(x: np.ndarray, y: np.ndarray):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    dx = np.zeros_like(x)
+    N  = x.shape[0]
 
+    x_exp = np.exp(x - np.max(x, axis=1, keepdims=True))    # keepdims: 保持维数
+    dx = x_exp / np.sum(x_exp, axis=1, keepdims=True)
+    loss = - np.sum(np.log(dx[range(N), y]))
+    dx[range(N), y] -= 1
+    
+    loss /= N
+    dx /= N
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -170,6 +185,23 @@ def conv_forward_naive(x: np.ndarray, w: np.ndarray, b: np.ndarray, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    stride, pad = conv_param['stride'], conv_param['pad']
+
+    H_out = int(1 + (H + 2*pad - HH) / stride)
+    W_out = int(1 + (W + 2*pad - WW) / stride)
+    out = np.zeros((N, F, H_out, W_out))
+
+    x_pad = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), 'constant', constant_values=0)
+
+    for i in range(H_out):
+        for j in range(W_out):
+          x_pad_mask = x_pad[:, :, i*stride: i*stride+HH, j*stride: j*stride+WW]
+          for k in range(F):
+            out[:, k, i, j] = np.sum(x_pad_mask * w[k, :, :, :], axis=(1, 2, 3))
+    
+    out += b[None, :, None, None]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -196,8 +228,27 @@ def conv_backward_naive(dout: np.ndarray, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, w, b, conv_param = cache
+    N, C, H_out, W_out = dout.shape
+    F, C, HH, WW = w.shape
 
+    stride, pad = conv_param['stride'], conv_param['pad']
+    x_pad = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), 'constant', constant_values=0)
 
+    dx = np.zeros_like(x)
+    dx_pad = np.zeros_like(x_pad)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    db = np.sum(dout, axis=(0, 2, 3))
+
+    for i in range(H_out):
+        for j in range(W_out):
+            x_pad_masked = x_pad[:, :, i * stride:i * stride + HH, j * stride:j * stride + WW]
+            for k in range(F):
+                dw[k, :, :, :] += np.sum(x_pad_masked * (dout[:, k, i, j])[:, None, None, None], axis=0)
+            for n in range(N):
+                dx_pad[n, :, i*stride: i*stride+HH, j*stride: j*stride+WW] += np.sum((w[:, :, :, :] * (dout[n, :, i, j])[:, None, None, None]), axis=0)
+    dx = dx_pad[:, :, pad: -pad, pad: -pad]
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -230,8 +281,16 @@ def max_pool_forward_naive(x: np.ndarray, pool_param):
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, C, H, W = x.shape
+    HH, WW, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    H_out = (H-HH) // stride + 1
+    W_out = (W-WW) // stride + 1
 
-
+    out = np.zeros((N, C, H_out, W_out))
+    for i in range(H_out):
+        for j in range(W_out):
+            x_masked = x[:, :, i*stride: i*stride+HH, j*stride: j*stride+WW]
+            out[:, :, i, j] = np.max(x_masked, axis=(2, 3))
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -255,7 +314,17 @@ def max_pool_backward_naive(dout: np.ndarray, cache):
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, pool_param = cache
+    N, C, H_out, W_out = dout.shape
+    HH, WW, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    dx = np.zeros_like(x)
 
+    for i in range(H_out):
+        for j in range(W_out):
+            x_masked = x[:, :, i*stride : i*stride+HH, j*stride : j*stride+WW]
+            max_x_masked = np.max(x_masked, axis=(2, 3))
+            temp_binary_mask = (x_masked == max_x_masked[:, :, None, None])
+            dx[:, :, i*stride: i*stride+HH, j*stride: j*stride+WW] += temp_binary_mask * (dout[:, :, i, j])[:, :, None, None]
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
